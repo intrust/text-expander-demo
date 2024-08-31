@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Manager Prototype</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .folder {
+            margin-bottom: 10px;
+        }
+        .folder-name {
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .folder-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            transition: transform 0.3s;
+        }
+        .folder-open .folder-icon {
+            transform: rotate(90deg);
+        }
+        .template-list {
+            margin-left: 25px;
+            display: none;
+        }
+        .folder-open .template-list {
+            display: block;
+        }
+        .template {
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .template-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .template-name {
+            font-weight: bold;
+        }
+        .template-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .template-preview {
+            font-size: 0.9em;
+            color: #333;
+            white-space: pre-line;
+            margin-top: 5px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .btn-edit {
+            background-color: #008CBA;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Template Manager</h1>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search folders and templates...">
+        </div>
+        <div id="folderList"></div>
+        <button id="addTemplateBtn" class="btn">Add Template</button>
+    </div>
+
+    <!-- Add Template Modal -->
+    <div id="addTemplateModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Template</h2>
+            <input id="newTemplateName" type="text" placeholder="Template Name">
+            <input id="newTemplatePlaceholder" type="text" placeholder="Placeholder">
+            <input id="newTemplateShortcut" type="text" placeholder="Keyboard Shortcut">
+            <textarea id="newTemplateContent" rows="4" placeholder="Template Content"></textarea>
+            <button id="saveNewTemplate" class="btn">Save</button>
+        </div>
+    </div>
+
+    <!-- Edit Template Modal -->
+    <div id="editTemplateModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Template</h2>
+            <input id="editTemplateName" type="text" placeholder="Template Name">
+            <input id="editTemplatePlaceholder" type="text" placeholder="Placeholder">
+            <input id="editTemplateShortcut" type="text" placeholder="Keyboard Shortcut">
+            <textarea id="editTemplateContent" rows="4" placeholder="Template Content"></textarea>
+            <button id="saveEditTemplate" class="btn">Save</button>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        let folders = [
+            {
+                id: 1,
+                name: "Work",
+                isOpen: false,
+                templates: [
+                    { id: 1, name: "Meeting Minutes", placeholder: "!minutes", shortcut: "Ctrl+Shift+M", content: "Date: [DATE]\nAttendees: [NAMES]\n\n1. Agenda Items:\n   - \n\n2. Discussion:\n   - \n\n3. Action Items:\n   - " },
+                    { id: 2, name: "Project Update", placeholder: "!update", shortcut: "Ctrl+Shift+U", content: "Project: [PROJECT NAME]\nDate: [DATE]\n\nProgress:\n- \n\nChallenges:\n- \n\nNext Steps:\n- " }
+                ]
+            },
+            {
+                id: 2,
+                name: "Personal",
+                isOpen: false,
+                templates: []
+            }
+        ];
+
+        // Render folders and templates
+        function renderFolders(searchTerm = '') {
+            const folderList = document.getElementById('folderList');
+            folderList.innerHTML = folders.map(folder => {
+                const folderMatches = folder.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchingTemplates = folder.templates.filter(template =>
+                    template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    template.placeholder.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    template.content.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                if (!folderMatches && matchingTemplates.length === 0) return '';
+
+                return `
+                    <div class="folder ${folderMatches || matchingTemplates.length > 0 ? 'folder-open' : ''}">
+                        <div class="folder-name" onclick="toggleFolder(${folder.id})">
+                            <span class="folder-icon">▶</span>
+                            ${highlightText(folder.name, searchTerm)}
+                        </div>
+                        <div class="template-list">
+                            ${matchingTemplates.map(template => `
+                                <div class="template">
+                                    <div class="template-header">
+                                        <span class="template-name">${highlightText(template.name, searchTerm)}</span>
+                                        <button onclick="openEditModal(${template.id})" class="btn btn-edit">Edit</button>
+                                    </div>
+                                    <div class="template-info">
+                                        <span>${highlightText(template.placeholder, searchTerm)}</span>
+                                        <span>${template.shortcut}</span>
+                                    </div>
+                                    <p class="template-preview">${highlightText(template.content.split('\n').slice(0, 2).join('\n'), searchTerm)}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function highlightText(text, searchTerm) {
+            if (!searchTerm) return text;
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // Toggle folder open/closed
+        function toggleFolder(id) {
+            folders = folders.map(folder =>
+                folder.id === id ? {...folder, isOpen: !folder.isOpen} : folder
+            );
+            renderFolders(document.getElementById('searchInput').value);
+        }
+
+        // Modal functionality
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = "block";
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+        }
+
+        // Open add template modal
+        document.getElementById('addTemplateBtn').onclick = () => openModal('addTemplateModal');
+
+        // Open edit template modal
+        function openEditModal(templateId) {
+            const template = folders.flatMap(f => f.templates).find(t => t.id === templateId);
+            document.getElementById('editTemplateName').value = template.name;
+            document.getElementById('editTemplatePlaceholder').value = template.placeholder;
+            document.getElementById('editTemplateShortcut').value = template.shortcut;
+            document.getElementById('editTemplateContent').value = template.content;
+            openModal('editTemplateModal');
+        }
+
+        // Close modals
+        document.querySelectorAll('.close').forEach(button => {
+            button.onclick = () => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = "none";
+                });
+            }
+        });
+
+        // Save new template
+        document.getElementById('saveNewTemplate').onclick = () => {
+            const name = document.getElementById('newTemplateName').value;
+            const placeholder = document.getElementById('newTemplatePlaceholder').value;
+            const shortcut = document.getElementById('newTemplateShortcut').value;
+            const content = document.getElementById('newTemplateContent').value;
+            const newTemplate = { id: Date.now(), name, placeholder, shortcut, content };
+            folders[0].templates.push(newTemplate);
+            renderFolders(document.getElementById('searchInput').value);
+            closeModal('addTemplateModal');
+        };
+
+        // Save edited template
+        document.getElementById('saveEditTemplate').onclick = () => {
+            const name = document.getElementById('editTemplateName').value;
+            const placeholder = document.getElementById('editTemplatePlaceholder').value;
+            const shortcut = document.getElementById('editTemplateShortcut').value;
+            const content = document.getElementById('editTemplateContent').value;
+            folders = folders.map(folder => ({
+                ...folder,
+                templates: folder.templates.map(template =>
+                    template.name === name ? { ...template, name, placeholder, shortcut, content } : template
+                )
+            }));
+            renderFolders(document.getElementById('searchInput').value);
+            closeModal('editTemplateModal');
+        };
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            renderFolders(e.target.value);
+        });
+
+        // Initial render
+        renderFolders();
+    </script>
+</body>
+</html>
